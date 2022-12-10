@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "jsx": "react",
+    "jsx": "react-native",
     "lib": ["esnext"],
     "module": "esnext",
     "moduleResolution": "node",
+    "declaration": true,
+    "checkJs": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "noImplicitUseStrict": false,

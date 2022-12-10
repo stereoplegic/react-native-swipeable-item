@@ -14,6 +14,5 @@ export {
   UnderlayContext,
   UnderlayParams,
 } from "./context";
-
 export default Swipeable;
 export { RenderOverlay, RenderUnderlay };
