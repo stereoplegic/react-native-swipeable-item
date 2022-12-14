@@ -1,21 +1,24 @@
-import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
-import { Platform } from "react-native";
+import {
+  forwardRef,
+  lazy,
+  Suspense,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, {
+import {
   runOnJS,
-  useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
   withSpring,
   interpolate,
   Extrapolate,
-  useAnimatedProps,
 } from "react-native-reanimated";
-import { OpenDirection, OverlayContext, UnderlayContext } from "./context";
-import { styles } from "./styles";
-const isWeb = Platform.OS === "web";
-const renderNull = () => null;
-const MAX_Z_INDEX = 100;
+import { OpenDirection, OverlayContext } from "../context";
+import { renderNull, isWeb, isRTL } from "../shared";
+const Underlay = lazy(() => import("./underlay"));
+const Overlay = lazy(() => import("./overlay"));
 function Swipeable(props, ref) {
   const {
     item,
@@ -84,54 +87,20 @@ function Swipeable(props, ref) {
       ? activationThreshold
       : Number.MAX_VALUE;
   const activeOffsetPrimaryAxis = [activeOffsetNext, activeOffsetPrevious];
-  const nextStyle = useAnimatedStyle(() => {
-    const opacity = percentOpenNext.value > 0 ? 1 : 0;
-    const zIndex = Math.floor(
-      Math.min(percentOpenNext.value * MAX_Z_INDEX, MAX_Z_INDEX - 1)
-    );
-    return isWeb ? { opacity, zIndex } : { opacity };
-  }, []);
-  const previousStyle = useAnimatedStyle(() => {
-    const opacity = percentOpenPrevious.value > 0 ? 1 : 0;
-    const zIndex = Math.floor(
-      Math.min(percentOpenPrevious.value * MAX_Z_INDEX, MAX_Z_INDEX - 1)
-    );
-    return isWeb ? { opacity, zIndex } : { opacity };
-  }, []);
-  const overlayStyle = useAnimatedStyle(() => {
-    const transform = [
-      vertical
-        ? { translateY: animStatePos.value }
-        : { translateX: animStatePos.value },
-    ];
-    const zIndex = MAX_Z_INDEX;
-    return isWeb ? { transform, zIndex } : { transform };
-  }, [animStatePos]);
-  const openNext = (snapPoint, options) => {
-    const toValue = snapPoint ?? maxSnapPointNext;
+  const open = (direction, snapPoint, options) => {
+    const toValue =
+      snapPoint ?? direction === OpenDirection.NEXT
+        ? maxSnapPointNext
+        : maxSnapPointPrevious;
     return new Promise((resolve) => {
       function resolvePromiseIfFinished(isFinished) {
         if (isFinished) resolve();
-        onAnimationEnd(OpenDirection.NEXT, toValue);
-      }
-      if (options?.animated === false) {
-        animStatePos.value = toValue;
-        runOnJS(resolvePromiseIfFinished)(true);
-      } else {
-        animStatePos.value = withSpring(toValue, springConfig, (isFinished) => {
-          if (isFinished) {
-            runOnJS(resolvePromiseIfFinished)(isFinished);
-          }
-        });
-      }
-    });
-  };
-  const openPrevious = (snapPoint, options) => {
-    const toValue = snapPoint ?? maxSnapPointPrevious;
-    return new Promise((resolve) => {
-      function resolvePromiseIfFinished(isFinished) {
-        if (isFinished) resolve();
-        onAnimationEnd(OpenDirection.PREVIOUS, toValue);
+        onAnimationEnd(
+          direction === OpenDirection.NEXT
+            ? OpenDirection.NEXT
+            : OpenDirection.PREVIOUS,
+          toValue
+        );
       }
       if (options?.animated === false) {
         animStatePos.value = toValue;
@@ -167,10 +136,8 @@ function Swipeable(props, ref) {
   useImperativeHandle(ref, () => {
     const refObject = {
       open: (openDirection, snapPoint, options) => {
-        if (openDirection === OpenDirection.NEXT)
-          return openNext(snapPoint, options);
-        if (openDirection === OpenDirection.PREVIOUS)
-          return openPrevious(snapPoint, options);
+        if (openDirection === OpenDirection.NEXT || OpenDirection.PREVIOUS)
+          return open(openDirection, snapPoint, options);
         return close();
       },
       close,
@@ -232,6 +199,10 @@ function Swipeable(props, ref) {
       const openDirection =
         closestSnapPoint === 0
           ? OpenDirection.NONE
+          : !vertical && isRTL // No need to flip next/previous for vertical
+          ? closestSnapPoint > 0
+            ? OpenDirection.NEXT
+            : OpenDirection.PREVIOUS
           : closestSnapPoint > 0
           ? OpenDirection.PREVIOUS
           : OpenDirection.NEXT;
@@ -261,89 +232,53 @@ function Swipeable(props, ref) {
     }),
     []
   );
-  const underlayPreviousParams = useMemo(() => {
-    return {
-      open: openPrevious,
-      percentOpen: percentOpenPrevious,
-      direction: OpenDirection.PREVIOUS,
-      ...sharedParams,
-    };
-  }, [percentOpenPrevious, openPrevious, sharedParams]);
-  const underlayNextParams = useMemo(() => {
-    return {
-      open: openNext,
-      percentOpen: percentOpenNext,
-      direction: OpenDirection.NEXT,
-      ...sharedParams,
-    };
-  }, [item, percentOpenNext, openNext, sharedParams]);
   const overlayParams = useMemo(() => {
     // If there is only one swipe direction, use it as the 'open' function. Otherwise we need to choose one.
-    const open =
+    const openFn =
       hasNext && !hasPrevious
-        ? openNext
+        ? open(OpenDirection.NEXT)
         : hasPrevious && !hasNext
-        ? openPrevious
-        : openNext;
+        ? open(OpenDirection.PREVIOUS)
+        : open(OpenDirection.NEXT);
     return {
-      openNext: openNext,
-      openPrevious: openPrevious,
+      open: open,
       percentOpenNext,
       percentOpenPrevious,
       openDirection,
-      open,
+      openFn,
       ...sharedParams,
     };
   }, [
-    openNext,
-    openPrevious,
+    open,
     openDirection,
     percentOpenNext,
     percentOpenPrevious,
     hasNext,
     hasPrevious,
   ]);
-  const animPropsNext = useAnimatedProps(() => {
-    // useAnimatedProps broken on web: https://github.com/software-mansion/react-native-reanimated/issues/1808
-    // update: shouldn't be necessary anymore: https://github.com/software-mansion/react-native-reanimated/pull/1819
-    // if (isWeb)
-    //     return { pointerEvents: "auto" };
-    return {
-      pointerEvents: percentOpenNext.value > 0 ? "auto" : "none",
-    };
-  }, []);
-  const animPropsPrevious = useAnimatedProps(() => {
-    // useAnimatedProps broken on web: https://github.com/software-mansion/react-native-reanimated/issues/1808
-    // update: shouldn't be necessary anymore: https://github.com/software-mansion/react-native-reanimated/pull/1819
-    // if (isWeb)
-    //     return { pointerEvents: "auto" };
-    return {
-      pointerEvents: percentOpenPrevious.value > 0 ? "auto" : "none",
-    };
-  }, []);
   return (
     <OverlayContext.Provider value={overlayParams}>
-      <Animated.View
-        animatedProps={animPropsNext}
-        style={[styles.underlay, nextStyle]}
-      >
-        <UnderlayContext.Provider value={underlayNextParams}>
-          {renderUnderlayNext(underlayNextParams)}
-        </UnderlayContext.Provider>
-      </Animated.View>
-      <Animated.View
-        animatedProps={animPropsPrevious}
-        style={[styles.underlay, previousStyle]}
-      >
-        <UnderlayContext.Provider value={underlayPreviousParams}>
-          {renderUnderlayPrevious(underlayPreviousParams)}
-        </UnderlayContext.Provider>
-      </Animated.View>
+      {renderUnderlayNext && (
+        <Suspense fallback={null}>
+          <Underlay
+            direction={OpenDirection.NEXT}
+            item={item}
+            open={open}
+            sharedParams={sharedParams}
+            percentOpenNext={percentOpenNext}
+            percentOpenPrevious={percentOpenPrevious}
+            renderUnderlayNext={renderUnderlayNext}
+            renderUnderlayPrevious={renderUnderlayPrevious}
+          />
+        </Suspense>
+      )}
       <GestureDetector gesture={gesture}>
-        <Animated.View style={[styles.flex, overlayStyle]}>
-          {children}
-          {renderOverlay(overlayParams)}
-        </Animated.View>
+        <Suspense fallback={null}>
+          <Overlay vertical={vertical} animStatePos={animStatePos}>
+            {children}
+            {renderOverlay(overlayParams)}
+          </Overlay>
+        </Suspense>
       </GestureDetector>
     </OverlayContext.Provider>
   );

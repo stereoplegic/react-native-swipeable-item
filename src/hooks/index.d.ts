@@ -1,19 +1,14 @@
-import { UnderlayParams, OverlayParams, OpenDirection } from "../context";
+import { UnderlayParams, OverlayParams } from "../context";
 export declare function useUnderlayParams<T>(): UnderlayParams<T>;
 export declare function useOverlayParams<T>(): OverlayParams<T>;
 export declare function useSwipeableParams<T>(): {
-  open: (
-    snapPoint?: number | undefined,
-    direction?: OpenDirection | undefined
-  ) => Promise<void>;
+  open: any;
   percentOpen: Readonly<{
     value: number;
   }>;
   item: T;
-  openNext: import("../context").OpenPromiseFn;
-  openPrevious: import("../context").OpenPromiseFn;
   close: import("../context").ClosePromiseFn;
-  openDirection: OpenDirection;
+  openDirection: symbol;
   percentOpenNext: Readonly<{
     value: number;
   }>;

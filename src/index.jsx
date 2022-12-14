@@ -1,4 +1,4 @@
-import Swipeable from "./swipeable";
+import Swipeable from "./components/swipeable";
 export {
   useOverlayParams,
   useUnderlayParams,

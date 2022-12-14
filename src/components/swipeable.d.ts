@@ -1,16 +1,12 @@
 import { ForwardedRef, ReactElement, ReactNode } from "react";
 import { WithSpringConfig } from "react-native-reanimated";
 import {
-  UnderlayParams,
-  OverlayParams,
-  OpenDirection,
+  OpenDirectionType,
   OpenCloseOptions,
   ClosePromiseFn,
-} from "./context";
-export declare type RenderUnderlay<T> = (
-  params: UnderlayParams<T>
-) => ReactNode;
-export declare type RenderOverlay<T> = (params: OverlayParams<T>) => ReactNode;
+  RenderUnderlay,
+  RenderOverlay,
+} from "../context";
 declare type Props<T> = {
   item: T;
   children?: ReactNode;
@@ -19,7 +15,7 @@ declare type Props<T> = {
   renderUnderlayNext?: RenderUnderlay<T>;
   renderUnderlayPrevious?: RenderUnderlay<T>;
   onChange?: (params: {
-    openDirection: OpenDirection;
+    openDirection: OpenDirectionType;
     snapPoint: number;
   }) => void;
   overSwipe?: number;
@@ -32,7 +28,7 @@ declare type Props<T> = {
 };
 export declare type SwipeableImperativeRef = {
   open: (
-    openDirection: OpenDirection,
+    openDirection: OpenDirectionType,
     snapPoint?: number,
     options?: OpenCloseOptions
   ) => Promise<void>;
@@ -40,7 +36,7 @@ export declare type SwipeableImperativeRef = {
 };
 declare const _default: <T>(
   props: Props<T> & {
-    ref?: ForwardedRef<SwipeableImperativeRef> | undefined;
+    ref?: ForwardedRef<SwipeableImperativeRef>;
   }
 ) => ReactElement;
 export default _default;

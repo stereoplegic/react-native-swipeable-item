@@ -29,11 +29,11 @@ export function useSwipeableParams() {
   const contextDirection = underlayContext?.direction;
   const open = useCallback(
     (snapPoint, direction) => {
-      const openFnNext = overlayContext.openNext;
-      const openFnPrevious = overlayContext.openPrevious;
       const openDirection = direction || contextDirection;
       const openFn =
-        openDirection === OpenDirection.NEXT ? openFnNext : openFnPrevious;
+        openDirection === OpenDirection.NEXT
+          ? open(OpenDirection.NEXT)
+          : open(OpenDirection.PREVIOUS);
       return openFn(snapPoint);
     },
     [overlayContext, contextDirection]

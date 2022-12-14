@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "jsx": "react-native",
+    "jsx": "preserve",
     "lib": ["esnext"],
     "module": "esnext",
     "moduleResolution": "node",
@@ -13,7 +13,7 @@
     "noStrictGenericChecks": false,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "strict": true,
+    // "strict": true,
     "target": "esnext"
   },
   "exclude": ["node_modules"],

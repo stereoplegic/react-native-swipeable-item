@@ -1,4 +1,4 @@
-import Swipeable, { RenderOverlay, RenderUnderlay } from "./swipeable";
+import Swipeable from "./components/swipeable";
 export {
   useOverlayParams,
   useUnderlayParams,
@@ -13,6 +13,7 @@ export {
   OverlayParams,
   UnderlayContext,
   UnderlayParams,
+  RenderOverlay,
+  RenderUnderlay,
 } from "./context";
 export default Swipeable;
-export { RenderOverlay, RenderUnderlay };

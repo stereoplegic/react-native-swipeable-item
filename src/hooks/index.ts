@@ -3,6 +3,7 @@ import {
   UnderlayParams,
   OverlayParams,
   OpenDirection,
+  OpenDirectionType,
   OverlayContext,
   UnderlayContext,
 } from "../context";
@@ -40,12 +41,12 @@ export function useSwipeableParams<T>() {
   const contextDirection = underlayContext?.direction;
 
   const open = useCallback(
-    (snapPoint?: number, direction?: OpenDirection) => {
-      const openFnNext = overlayContext.openNext;
-      const openFnPrevious = overlayContext.openPrevious;
+    (snapPoint?: number, direction?: OpenDirectionType) => {
       const openDirection = direction || contextDirection;
       const openFn =
-        openDirection === OpenDirection.NEXT ? openFnNext : openFnPrevious;
+        openDirection === OpenDirection.NEXT
+          ? open(OpenDirection.NEXT)
+          : open(OpenDirection.PREVIOUS);
       return openFn(snapPoint);
     },
     [overlayContext, contextDirection]

@@ -1,13 +1,18 @@
-import { createContext } from "react";
+import { createContext, ReactNode } from "react";
 import { DerivedValue } from "react-native-reanimated";
 
 export type OpenCloseOptions = { animated?: boolean };
-export enum OpenDirection {
-  NEXT = "next",
-  PREVIOUS = "previous",
-  NONE = "none",
-}
+export type OpenDirectionType =
+  typeof OpenDirection[keyof typeof OpenDirection];
+
+export const OpenDirection = Object.freeze({
+  NEXT: Symbol("next"),
+  PREVIOUS: Symbol("previous"),
+  NONE: Symbol("none"),
+});
+
 export type OpenPromiseFn = (
+  direction: typeof OpenDirection.NEXT | typeof OpenDirection.PREVIOUS,
   snapPoint?: number,
   options?: OpenCloseOptions
 ) => Promise<void>;
@@ -19,18 +24,21 @@ export type UnderlayParams<T> = {
   close: ClosePromiseFn;
   percentOpen: DerivedValue<number>;
   isGestureActive: DerivedValue<boolean>;
-  direction: OpenDirection;
+  direction: OpenDirectionType;
 };
 
 export type OverlayParams<T> = {
   item: T;
-  openNext: OpenPromiseFn;
-  openPrevious: OpenPromiseFn;
+  open: OpenPromiseFn;
   close: ClosePromiseFn;
-  openDirection: OpenDirection;
+  openDirection: OpenDirectionType;
   percentOpenNext: DerivedValue<number>;
   percentOpenPrevious: DerivedValue<number>;
 };
+
+export type RenderUnderlay<T> = (params: UnderlayParams<T>) => ReactNode;
+export type RenderOverlay<T> = (params: OverlayParams<T>) => ReactNode;
+
 export const UnderlayContext = createContext<
   UnderlayParams<unknown> | undefined
 >(undefined);
